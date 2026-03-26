@@ -1,0 +1,11 @@
+setup.sh
+sw
+src/build.sh
+src/build_vars.sh
+src/help.sh
+src/sw_color.sh
+src/sw_functions.sh
+src/version.sh
+tests/build/arm64_compile_test.sh
+tests/build/mainline_compile_test.sh
+tests/run_tests.sh
