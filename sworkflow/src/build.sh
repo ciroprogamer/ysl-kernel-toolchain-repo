@@ -117,12 +117,28 @@ displayDeviceInfo()
 	log_info "HOST_OS_EXTRA=$HOST_OS_EXTRA"
 	log_info "HOST_PATH=$PATH"
 	log_info "OUT_DIR=out" # HardCode this for now.
+	log_info "MAKE flags: ${MAKE[@]}"
 	log_info "============================================"
 }
 
 kernel_build()
 {
 	device="$3"
+
+	# Parse extra flags (anything after the device name)
+	shift 3
+	for arg in "$@"; do
+		case "$arg" in
+			--verbose | -v)
+				build_verbose=1
+				;;
+			*)
+				log_error "error: Unknown argument: $arg"
+				exit 22
+				;;
+		esac
+	done
+
 	check_kernel "$device"
 	log_info "sworkflow: Starting Kernel Build!"
 
@@ -149,6 +165,10 @@ kernel_build()
 	if [[ -n "$cross_compile_arm32" ]]; then
 		cross_compile_arm32="CROSS_COMPILE_ARM32=$cross_compile_arm32"
 		MAKE+=("$cross_compile_arm32")
+	fi
+
+	if [[ -n "$build_verbose" ]]; then
+		MAKE+=(V=1)
 	fi
 
 	if [[ -n "$use_clang" ]]; then

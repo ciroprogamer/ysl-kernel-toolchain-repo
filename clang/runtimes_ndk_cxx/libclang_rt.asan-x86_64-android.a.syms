@@ -9,7 +9,6 @@
   __interceptor___cxa_rethrow_primary_exception;
   __interceptor___cxa_throw;
   __interceptor___libc_memalign;
-  __interceptor___strndup;
   __interceptor___strxfrm_l;
   __interceptor___wait4;
   __interceptor___wcsxfrm_l;
@@ -26,7 +25,6 @@
   __interceptor_bcmp;
   __interceptor_bsd_signal;
   __interceptor_calloc;
-  __interceptor_cfree;
   __interceptor_clock_getcpuclockid;
   __interceptor_clock_getres;
   __interceptor_clock_gettime;
@@ -157,6 +155,8 @@
   __interceptor_pthread_setcancelstate;
   __interceptor_pthread_setcanceltype;
   __interceptor_pthread_sigmask;
+  __interceptor_ptsname;
+  __interceptor_ptsname_r;
   __interceptor_puts;
   __interceptor_pvalloc;
   __interceptor_pwrite;
@@ -314,6 +314,7 @@
   __sanitizer_get_heap_size;
   __sanitizer_get_module_and_offset_for_pc;
   __sanitizer_get_ownership;
+  __sanitizer_get_report_path;
   __sanitizer_get_unmapped_bytes;
   __sanitizer_install_malloc_and_free_hooks;
   __sanitizer_on_print;
@@ -961,7 +962,6 @@
   __sanitizer_weak_hook_strncasecmp;
   __sanitizer_weak_hook_strncmp;
   __sanitizer_weak_hook_strstr;
-  __strndup;
   __strxfrm_l;
   __ubsan_*;
   __wait4;
@@ -979,7 +979,6 @@
   bcmp;
   bsd_signal;
   calloc;
-  cfree;
   clock_getcpuclockid;
   clock_getres;
   clock_gettime;
@@ -1109,6 +1108,8 @@
   pthread_setcancelstate;
   pthread_setcanceltype;
   pthread_sigmask;
+  ptsname;
+  ptsname_r;
   puts;
   pvalloc;
   pwrite;

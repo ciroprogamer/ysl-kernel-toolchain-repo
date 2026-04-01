@@ -13,6 +13,7 @@ ATTRIBUTE_ENUM(ArgMemOnly,argmemonly)
 ATTRIBUTE_ENUM(Builtin,builtin)
 ATTRIBUTE_ENUM(Cold,cold)
 ATTRIBUTE_ENUM(Convergent,convergent)
+ATTRIBUTE_ENUM(Hot,hot)
 ATTRIBUTE_ENUM(ImmArg,immarg)
 ATTRIBUTE_ENUM(InAlloca,inalloca)
 ATTRIBUTE_ENUM(InReg,inreg)
@@ -25,6 +26,7 @@ ATTRIBUTE_ENUM(Naked,naked)
 ATTRIBUTE_ENUM(Nest,nest)
 ATTRIBUTE_ENUM(NoAlias,noalias)
 ATTRIBUTE_ENUM(NoBuiltin,nobuiltin)
+ATTRIBUTE_ENUM(NoCallback,nocallback)
 ATTRIBUTE_ENUM(NoCapture,nocapture)
 ATTRIBUTE_ENUM(NoCfCheck,nocf_check)
 ATTRIBUTE_ENUM(NoDuplicate,noduplicate)
@@ -62,15 +64,17 @@ ATTRIBUTE_ENUM(StackProtect,ssp)
 ATTRIBUTE_ENUM(StackProtectReq,sspreq)
 ATTRIBUTE_ENUM(StackProtectStrong,sspstrong)
 ATTRIBUTE_ENUM(StrictFP,strictfp)
-ATTRIBUTE_ENUM(StructRet,sret)
 ATTRIBUTE_ENUM(SwiftError,swifterror)
 ATTRIBUTE_ENUM(SwiftSelf,swiftself)
 ATTRIBUTE_ENUM(UWTable,uwtable)
 ATTRIBUTE_ENUM(WillReturn,willreturn)
 ATTRIBUTE_ENUM(WriteOnly,writeonly)
 ATTRIBUTE_ENUM(ZExt,zeroext)
+ATTRIBUTE_ENUM(ByRef,byref)
 ATTRIBUTE_ENUM(ByVal,byval)
+ATTRIBUTE_ENUM(MustProgress,mustprogress)
 ATTRIBUTE_ENUM(Preallocated,preallocated)
+ATTRIBUTE_ENUM(StructRet,sret)
 ATTRIBUTE_ENUM(Alignment,align)
 ATTRIBUTE_ENUM(AllocSize,allocsize)
 ATTRIBUTE_ENUM(Dereferenceable,dereferenceable)
@@ -127,6 +131,7 @@ static inline void mergeFnAttrs(Function &Caller,
   adjustCallerStackProbeSize(Caller, Callee);
   adjustMinLegalVectorWidth(Caller, Callee);
   adjustNullPointerValidAttr(Caller, Callee);
+  setAND<MustProgressAttr>(Caller, Callee);
   setAND<LessPreciseFPMADAttr>(Caller, Callee);
   setAND<NoInfsFPMathAttr>(Caller, Callee);
 }

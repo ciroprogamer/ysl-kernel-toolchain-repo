@@ -184,6 +184,10 @@ let TargetPrefix = "aarch64" in {  // All intrinsics start with "llvm.aarch64.".
                 [LLVMMatchType<0>, llvm_anyvector_ty, LLVMMatchType<1>],
                 [IntrNoMem]>;
 
+  class AdvSIMD_BF16FML_Intrinsic
+    : Intrinsic<[llvm_v4f32_ty],
+                [llvm_v4f32_ty, llvm_v8bf16_ty, llvm_v8bf16_ty],
+                [IntrNoMem]>;
 }
 
 // Arithmetic ops
@@ -466,9 +470,12 @@ let TargetPrefix = "aarch64", IntrProperties = [IntrNoMem] in {
   def int_aarch64_neon_usmmla : AdvSIMD_MatMul_Intrinsic;
   def int_aarch64_neon_usdot : AdvSIMD_Dot_Intrinsic;
   def int_aarch64_neon_bfdot : AdvSIMD_Dot_Intrinsic;
-  def int_aarch64_neon_bfmmla : AdvSIMD_MatMul_Intrinsic;
-  def int_aarch64_neon_bfmlalb : AdvSIMD_FML_Intrinsic;
-  def int_aarch64_neon_bfmlalt : AdvSIMD_FML_Intrinsic;
+  def int_aarch64_neon_bfmmla
+    : Intrinsic<[llvm_v4f32_ty],
+                [llvm_v4f32_ty, llvm_v8bf16_ty, llvm_v8bf16_ty],
+                [IntrNoMem]>;
+  def int_aarch64_neon_bfmlalb : AdvSIMD_BF16FML_Intrinsic;
+  def int_aarch64_neon_bfmlalt : AdvSIMD_BF16FML_Intrinsic;
 
 
   // v8.6-A Bfloat Intrinsics
@@ -490,6 +497,11 @@ let TargetPrefix = "aarch64", IntrProperties = [IntrNoMem] in {
   // v8.3-A Floating-point complex add
   def int_aarch64_neon_vcadd_rot90  : AdvSIMD_2VectorArg_Intrinsic;
   def int_aarch64_neon_vcadd_rot270 : AdvSIMD_2VectorArg_Intrinsic;
+
+  def int_aarch64_neon_vcmla_rot0   : AdvSIMD_3VectorArg_Intrinsic;
+  def int_aarch64_neon_vcmla_rot90  : AdvSIMD_3VectorArg_Intrinsic;
+  def int_aarch64_neon_vcmla_rot180 : AdvSIMD_3VectorArg_Intrinsic;
+  def int_aarch64_neon_vcmla_rot270 : AdvSIMD_3VectorArg_Intrinsic;
 }
 
 let TargetPrefix = "aarch64" in {  // All intrinsics start with "llvm.aarch64.".
@@ -760,6 +772,10 @@ def int_aarch64_irg_sp   : Intrinsic<[llvm_ptr_ty], [llvm_i64_ty],
 // ptr1 = tagp(ptr0, baseptr, tag_offset) returns a pointer where
 // * address is the address in ptr0
 // * tag is a function of (tag in baseptr, tag_offset).
+// ** Beware, this is not the same function as implemented by the ADDG instruction!
+//    Backend optimizations may change tag_offset; the only guarantee is that calls
+//    to tagp with the same pair of (baseptr, tag_offset) will produce pointers
+//    with the same tag value, assuming the set of excluded tags has not changed.
 // Address bits in baseptr and tag bits in ptr0 are ignored.
 // When offset between ptr0 and baseptr is a compile time constant, this can be emitted as
 //   ADDG ptr1, baseptr, (ptr0 - baseptr), tag_offset
@@ -794,6 +810,14 @@ def int_aarch64_tcancel : GCCBuiltin<"__builtin_arm_tcancel">,
 def int_aarch64_ttest   : GCCBuiltin<"__builtin_arm_ttest">,
                           Intrinsic<[llvm_i64_ty], [],
                                     [IntrNoMem, IntrHasSideEffects]>;
+
+// Armv8.7-A load/store 64-byte intrinsics
+defvar data512 = !listsplat(llvm_i64_ty, 8);
+def int_aarch64_ld64b: Intrinsic<data512, [llvm_ptr_ty]>;
+def int_aarch64_st64b: Intrinsic<[], !listconcat([llvm_ptr_ty], data512)>;
+def int_aarch64_st64bv: Intrinsic<[llvm_i64_ty], !listconcat([llvm_ptr_ty], data512)>;
+def int_aarch64_st64bv0: Intrinsic<[llvm_i64_ty], !listconcat([llvm_ptr_ty], data512)>;
+
 }
 
 def llvm_nxv2i1_ty  : LLVMType<nxv2i1>;
@@ -1293,7 +1317,7 @@ class AdvSIMD_GatherLoad_VS_Intrinsic
                   llvm_anyvector_ty,
                   llvm_i64_ty
                 ],
-                [IntrReadMem, IntrArgMemOnly]>;
+                [IntrReadMem]>;
 
 class AdvSIMD_ScatterStore_SV_64b_Offsets_Intrinsic
     : Intrinsic<[],
@@ -1322,7 +1346,7 @@ class AdvSIMD_ScatterStore_VS_Intrinsic
                  LLVMScalarOrSameVectorWidth<0, llvm_i1_ty>,
                  llvm_anyvector_ty, llvm_i64_ty
                ],
-               [IntrWriteMem, IntrArgMemOnly]>;
+               [IntrWriteMem]>;
 
 
 class SVE_gather_prf_SV

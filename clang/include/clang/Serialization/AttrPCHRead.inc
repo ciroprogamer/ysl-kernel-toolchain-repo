@@ -195,6 +195,16 @@
     New->setPackExpansion(isPackExpansion);
     break;
   }
+  case attr::AlignNatural: {
+    bool isInherited = Record.readInt();
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    New = new (Context) AlignNaturalAttr(Context, Info);
+    cast<InheritableAttr>(New)->setInherited(isInherited);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
   case attr::AlignValue: {
     bool isImplicit = Record.readInt();
     bool isPackExpansion = Record.readInt();
@@ -278,7 +288,12 @@
     bool isImplicit = Record.readInt();
     bool isPackExpansion = Record.readInt();
     std::string annotation= Record.readString();
-    New = new (Context) AnnotateAttr(Context, Info, annotation);
+    unsigned argsSize = Record.readInt();
+    SmallVector<Expr *, 4> args;
+    args.reserve(argsSize);
+    for (unsigned i = 0; i != argsSize; ++i)
+      args.push_back(Record.readExpr());
+    New = new (Context) AnnotateAttr(Context, Info, annotation, args.data(), argsSize);
     cast<InheritableAttr>(New)->setInherited(isInherited);
     New->setImplicit(isImplicit);
     New->setPackExpansion(isPackExpansion);
@@ -431,6 +446,17 @@
     Expr * alignment = Record.readExpr();
     Expr * offset = Record.readExpr();
     New = new (Context) AssumeAlignedAttr(Context, Info, alignment, offset);
+    cast<InheritableAttr>(New)->setInherited(isInherited);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
+  case attr::Assumption: {
+    bool isInherited = Record.readInt();
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    std::string assumption= Record.readString();
+    New = new (Context) AssumptionAttr(Context, Info, assumption);
     cast<InheritableAttr>(New)->setInherited(isInherited);
     New->setImplicit(isImplicit);
     New->setPackExpansion(isPackExpansion);
@@ -729,6 +755,14 @@
     New->setPackExpansion(isPackExpansion);
     break;
   }
+  case attr::CalledOnce: {
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    New = new (Context) CalledOnceAttr(Context, Info);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
   case attr::Capability: {
     bool isInherited = Record.readInt();
     bool isImplicit = Record.readInt();
@@ -1002,6 +1036,28 @@
     New->setPackExpansion(isPackExpansion);
     break;
   }
+  case attr::EnforceTCB: {
+    bool isInherited = Record.readInt();
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    std::string tCBName= Record.readString();
+    New = new (Context) EnforceTCBAttr(Context, Info, tCBName);
+    cast<InheritableAttr>(New)->setInherited(isInherited);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
+  case attr::EnforceTCBLeaf: {
+    bool isInherited = Record.readInt();
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    std::string tCBName= Record.readString();
+    New = new (Context) EnforceTCBLeafAttr(Context, Info, tCBName);
+    cast<InheritableAttr>(New)->setInherited(isInherited);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
   case attr::EnumExtensibility: {
     bool isInherited = Record.readInt();
     bool isImplicit = Record.readInt();
@@ -1266,12 +1322,30 @@
     New->setPackExpansion(isPackExpansion);
     break;
   }
+  case attr::Leaf: {
+    bool isInherited = Record.readInt();
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    New = new (Context) LeafAttr(Context, Info);
+    cast<InheritableAttr>(New)->setInherited(isInherited);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
   case attr::LifetimeBound: {
     bool isInherited = Record.readInt();
     bool isImplicit = Record.readInt();
     bool isPackExpansion = Record.readInt();
     New = new (Context) LifetimeBoundAttr(Context, Info);
     cast<InheritableAttr>(New)->setInherited(isInherited);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
+  case attr::Likely: {
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    New = new (Context) LikelyAttr(Context, Info);
     New->setImplicit(isImplicit);
     New->setPackExpansion(isPackExpansion);
     break;
@@ -1526,6 +1600,17 @@
     New->setPackExpansion(isPackExpansion);
     break;
   }
+  case attr::NSErrorDomain: {
+    bool isInherited = Record.readInt();
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    VarDecl * errorDomain = Record.GetLocalDeclAs<VarDecl >(Record.readInt());
+    New = new (Context) NSErrorDomainAttr(Context, Info, errorDomain);
+    cast<InheritableAttr>(New)->setInherited(isInherited);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
   case attr::NSReturnsAutoreleased: {
     bool isInherited = Record.readInt();
     bool isImplicit = Record.readInt();
@@ -1670,9 +1755,11 @@
     break;
   }
   case attr::NoMerge: {
+    bool isInherited = Record.readInt();
     bool isImplicit = Record.readInt();
     bool isPackExpansion = Record.readInt();
     New = new (Context) NoMergeAttr(Context, Info);
+    cast<InheritableAttr>(New)->setInherited(isInherited);
     New->setImplicit(isImplicit);
     New->setPackExpansion(isPackExpansion);
     break;
@@ -1888,7 +1975,8 @@
     bool isPackExpansion = Record.readInt();
     OMPDeclareTargetDeclAttr::MapTypeTy mapType(static_cast<OMPDeclareTargetDeclAttr::MapTypeTy>(Record.readInt()));
     OMPDeclareTargetDeclAttr::DevTypeTy devType(static_cast<OMPDeclareTargetDeclAttr::DevTypeTy>(Record.readInt()));
-    New = new (Context) OMPDeclareTargetDeclAttr(Context, Info, mapType, devType);
+    unsigned level = Record.readInt();
+    New = new (Context) OMPDeclareTargetDeclAttr(Context, Info, mapType, devType, level);
     cast<InheritableAttr>(New)->setInherited(isInherited);
     New->setImplicit(isImplicit);
     New->setPackExpansion(isPackExpansion);
@@ -2154,6 +2242,14 @@
     New->setPackExpansion(isPackExpansion);
     break;
   }
+  case attr::ObjCNonRuntimeProtocol: {
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    New = new (Context) ObjCNonRuntimeProtocolAttr(Context, Info);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
   case attr::ObjCOwnership: {
     bool isInherited = Record.readInt();
     bool isImplicit = Record.readInt();
@@ -2270,6 +2366,22 @@
     bool isImplicit = Record.readInt();
     bool isPackExpansion = Record.readInt();
     New = new (Context) OpenCLGlobalAddressSpaceAttr(Context, Info);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
+  case attr::OpenCLGlobalDeviceAddressSpace: {
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    New = new (Context) OpenCLGlobalDeviceAddressSpaceAttr(Context, Info);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
+  case attr::OpenCLGlobalHostAddressSpace: {
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    New = new (Context) OpenCLGlobalHostAddressSpaceAttr(Context, Info);
     New->setImplicit(isImplicit);
     New->setPackExpansion(isPackExpansion);
     break;
@@ -2503,6 +2615,17 @@
     bool isPackExpansion = Record.readInt();
     std::string name= Record.readString();
     New = new (Context) PragmaClangTextSectionAttr(Context, Info, name);
+    cast<InheritableAttr>(New)->setInherited(isInherited);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
+  case attr::PreferredName: {
+    bool isInherited = Record.readInt();
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    TypeSourceInfo * typedefType = Record.readTypeSourceInfo();
+    New = new (Context) PreferredNameAttr(Context, Info, typedefType);
     cast<InheritableAttr>(New)->setInherited(isInherited);
     New->setImplicit(isImplicit);
     New->setPackExpansion(isPackExpansion);
@@ -2817,6 +2940,16 @@
     New->setPackExpansion(isPackExpansion);
     break;
   }
+  case attr::StrictFP: {
+    bool isInherited = Record.readInt();
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    New = new (Context) StrictFPAttr(Context, Info);
+    cast<InheritableAttr>(New)->setInherited(isInherited);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
   case attr::Suppress: {
     bool isImplicit = Record.readInt();
     bool isPackExpansion = Record.readInt();
@@ -2830,6 +2963,61 @@
     for (unsigned i = 0; i != diagnosticIdentifiersSize; ++i)
       diagnosticIdentifiers.push_back(diagnosticIdentifiersStorage[i]);
     New = new (Context) SuppressAttr(Context, Info, diagnosticIdentifiers.data(), diagnosticIdentifiersSize);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
+  case attr::SwiftAsync: {
+    bool isInherited = Record.readInt();
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    SwiftAsyncAttr::Kind kind(static_cast<SwiftAsyncAttr::Kind>(Record.readInt()));
+    ParamIdx completionHandlerIndex = ParamIdx::deserialize(Record.readInt());
+    New = new (Context) SwiftAsyncAttr(Context, Info, kind, completionHandlerIndex);
+    cast<InheritableAttr>(New)->setInherited(isInherited);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
+  case attr::SwiftAsyncName: {
+    bool isInherited = Record.readInt();
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    std::string name= Record.readString();
+    New = new (Context) SwiftAsyncNameAttr(Context, Info, name);
+    cast<InheritableAttr>(New)->setInherited(isInherited);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
+  case attr::SwiftAttr: {
+    bool isInherited = Record.readInt();
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    std::string attribute= Record.readString();
+    New = new (Context) SwiftAttrAttr(Context, Info, attribute);
+    cast<InheritableAttr>(New)->setInherited(isInherited);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
+  case attr::SwiftBridge: {
+    bool isInherited = Record.readInt();
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    std::string swiftType= Record.readString();
+    New = new (Context) SwiftBridgeAttr(Context, Info, swiftType);
+    cast<InheritableAttr>(New)->setInherited(isInherited);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
+  case attr::SwiftBridgedTypedef: {
+    bool isInherited = Record.readInt();
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    New = new (Context) SwiftBridgedTypedefAttr(Context, Info);
+    cast<InheritableAttr>(New)->setInherited(isInherited);
     New->setImplicit(isImplicit);
     New->setPackExpansion(isPackExpansion);
     break;
@@ -2854,6 +3042,17 @@
     New->setPackExpansion(isPackExpansion);
     break;
   }
+  case attr::SwiftError: {
+    bool isInherited = Record.readInt();
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    SwiftErrorAttr::ConventionKind convention(static_cast<SwiftErrorAttr::ConventionKind>(Record.readInt()));
+    New = new (Context) SwiftErrorAttr(Context, Info, convention);
+    cast<InheritableAttr>(New)->setInherited(isInherited);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
   case attr::SwiftErrorResult: {
     bool isInherited = Record.readInt();
     bool isImplicit = Record.readInt();
@@ -2869,6 +3068,46 @@
     bool isImplicit = Record.readInt();
     bool isPackExpansion = Record.readInt();
     New = new (Context) SwiftIndirectResultAttr(Context, Info);
+    cast<InheritableAttr>(New)->setInherited(isInherited);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
+  case attr::SwiftName: {
+    bool isInherited = Record.readInt();
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    std::string name= Record.readString();
+    New = new (Context) SwiftNameAttr(Context, Info, name);
+    cast<InheritableAttr>(New)->setInherited(isInherited);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
+  case attr::SwiftNewType: {
+    bool isInherited = Record.readInt();
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    SwiftNewTypeAttr::NewtypeKind newtypeKind(static_cast<SwiftNewTypeAttr::NewtypeKind>(Record.readInt()));
+    New = new (Context) SwiftNewTypeAttr(Context, Info, newtypeKind);
+    cast<InheritableAttr>(New)->setInherited(isInherited);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
+  case attr::SwiftObjCMembers: {
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    New = new (Context) SwiftObjCMembersAttr(Context, Info);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
+  case attr::SwiftPrivate: {
+    bool isInherited = Record.readInt();
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    New = new (Context) SwiftPrivateAttr(Context, Info);
     cast<InheritableAttr>(New)->setInherited(isInherited);
     New->setImplicit(isImplicit);
     New->setPackExpansion(isPackExpansion);
@@ -2995,6 +3234,14 @@
     New->setPackExpansion(isPackExpansion);
     break;
   }
+  case attr::TypeNullableResult: {
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    New = new (Context) TypeNullableResultAttr(Context, Info);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
   case attr::TypeTagForDatatype: {
     bool isInherited = Record.readInt();
     bool isImplicit = Record.readInt();
@@ -3046,6 +3293,14 @@
     bool isPackExpansion = Record.readInt();
     New = new (Context) UninitializedAttr(Context, Info);
     cast<InheritableAttr>(New)->setInherited(isInherited);
+    New->setImplicit(isImplicit);
+    New->setPackExpansion(isPackExpansion);
+    break;
+  }
+  case attr::Unlikely: {
+    bool isImplicit = Record.readInt();
+    bool isPackExpansion = Record.readInt();
+    New = new (Context) UnlikelyAttr(Context, Info);
     New->setImplicit(isImplicit);
     New->setPackExpansion(isPackExpansion);
     break;

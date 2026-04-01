@@ -25,6 +25,7 @@
 #include "clang/Lex/PreprocessingRecord.h"
 #include "clang/Sema/ExternalSemaSource.h"
 #include "clang/Sema/IdentifierResolver.h"
+#include "clang/Sema/Sema.h"
 #include "clang/Serialization/ASTBitCodes.h"
 #include "clang/Serialization/ContinuousRangeMap.h"
 #include "clang/Serialization/ModuleFile.h"
@@ -858,10 +859,10 @@ private:
   SourceLocation PointersToMembersPragmaLocation;
 
   /// The pragma float_control state.
-  Optional<unsigned> FpPragmaCurrentValue;
+  Optional<FPOptionsOverride> FpPragmaCurrentValue;
   SourceLocation FpPragmaCurrentLocation;
   struct FpPragmaStackEntry {
-    unsigned Value;
+    FPOptionsOverride Value;
     SourceLocation Location;
     SourceLocation PushLocation;
     StringRef SlotLabel;
@@ -869,17 +870,17 @@ private:
   llvm::SmallVector<FpPragmaStackEntry, 2> FpPragmaStack;
   llvm::SmallVector<std::string, 2> FpPragmaStrings;
 
-  /// The pragma pack state.
-  Optional<unsigned> PragmaPackCurrentValue;
-  SourceLocation PragmaPackCurrentLocation;
-  struct PragmaPackStackEntry {
-    unsigned Value;
+  /// The pragma align/pack state.
+  Optional<Sema::AlignPackInfo> PragmaAlignPackCurrentValue;
+  SourceLocation PragmaAlignPackCurrentLocation;
+  struct PragmaAlignPackStackEntry {
+    Sema::AlignPackInfo Value;
     SourceLocation Location;
     SourceLocation PushLocation;
     StringRef SlotLabel;
   };
-  llvm::SmallVector<PragmaPackStackEntry, 2> PragmaPackStack;
-  llvm::SmallVector<std::string, 2> PragmaPackStrings;
+  llvm::SmallVector<PragmaAlignPackStackEntry, 2> PragmaAlignPackStack;
+  llvm::SmallVector<std::string, 2> PragmaAlignPackStrings;
 
   /// The OpenCL extension settings.
   OpenCLOptions OpenCLExtensions;
@@ -900,8 +901,9 @@ private:
   /// Delete expressions to analyze at the end of translation unit.
   SmallVector<uint64_t, 8> DelayedDeleteExprs;
 
-  // A list of late parsed template function data.
-  SmallVector<uint64_t, 1> LateParsedTemplates;
+  // A list of late parsed template function data with their module files.
+  SmallVector<std::pair<ModuleFile *, SmallVector<uint64_t, 1>>, 4>
+      LateParsedTemplates;
 
   /// The IDs of all decls to be checked for deferred diags.
   ///
@@ -1449,8 +1451,6 @@ private:
   void Error(StringRef Msg) const;
   void Error(unsigned DiagID, StringRef Arg1 = StringRef(),
              StringRef Arg2 = StringRef(), StringRef Arg3 = StringRef()) const;
-  void Error(unsigned DiagID, StringRef Arg1, StringRef Arg2,
-             unsigned Select) const;
   void Error(llvm::Error &&Err) const;
 
 public:
@@ -2085,8 +2085,6 @@ public:
   /// Note: overrides method in ExternalASTSource
   Module *getModule(unsigned ID) override;
 
-  bool DeclIsFromPCHWithObjectFile(const Decl *D) override;
-
   /// Retrieve the module file with a given local ID within the specified
   /// ModuleFile.
   ModuleFile *getLocalModuleFile(ModuleFile &M, unsigned ID);
@@ -2119,6 +2117,11 @@ public:
 
   /// Read the contents of a CXXCtorInitializer array.
   CXXCtorInitializer **GetExternalCXXCtorInitializers(uint64_t Offset) override;
+
+  /// Read a AlignPackInfo from raw form.
+  Sema::AlignPackInfo ReadAlignPackInfo(uint32_t Raw) const {
+    return Sema::AlignPackInfo::getFromRawEncoding(Raw);
+  }
 
   /// Read a source location from raw form and return it in its
   /// originating module file's source location space.
